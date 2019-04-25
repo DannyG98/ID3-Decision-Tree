@@ -4,16 +4,22 @@ import numpy as np
 from node import *
 
 discrete_features = ['Sex', 'Pclass', 'Embarked']
+discrete_dict = {}
+df_mode = 0
 
 
 # Drops useless columns and fills in NaNs with mode for that column
 def pre_processing(df):
     # df = df.drop(['Name', 'PassengerId', 'Cabin', 'Ticket', 'Age', 'SibSp', 'Parch', 'Fare'], axis=1)
     df = df.drop(['Name', 'PassengerId', 'Cabin', 'Ticket'], axis=1)
+    df_mode = df['Survived'].mode()[0]
 
     for column in list(df.columns):
         if column != 'Survived':
             df[column].fillna(df.mode()[column][0], inplace=True)
+
+        if column in discrete_features:
+            discrete_dict[column] = list(df[column].unique())
 
     return df
 
@@ -22,7 +28,8 @@ def pre_processing(df):
 def calculate_ig(df, attribute):
     entropy = calculate_entropy(df)
 
-    attribute_domain = list(df[attribute].unique())
+    # DICT
+    attribute_domain = discrete_dict[attribute]
 
     conditional_entropy = 0
 
@@ -149,7 +156,8 @@ def split(df):
         splits['>='] = df.loc[df[feature] >= threshold]
 
     else:
-        for x in list(df[feature].unique()):
+        # DICT
+        for x in discrete_dict[feature]:
             splits[x] = df.loc[df[feature] == x].drop(feature, axis=1)
 
     return splits, feature, threshold
@@ -169,17 +177,17 @@ def check_rows_equal(df):
 
 # Recursively Creates the Decision Tree
 def create_tree(df, depth, depth_limit, parent=None):
-    if depth > depth_limit:
-        parent.is_leaf = True
-        return
-    if calculate_entropy(df) == 0:
-        parent.is_leaf = True
-        return
-    if check_rows_equal(df):
-        parent.is_leaf = True
-        return
+    try:
+        majority_output = df['Survived'].mode()[0]
+    except:
+        majority_output = df_mode
 
-    majority_output = df['Survived'].mode()[0]
+    if depth >= depth_limit:
+        return Node(parent, predict=majority_output, is_leaf=True)
+    if calculate_entropy(df) == 0:
+        return Node(parent, predict=majority_output, is_leaf=True)
+    if check_rows_equal(df):
+        return Node(parent, predict=majority_output, is_leaf=True)
 
     # Splits dictionary is currently key: df
     splits, feature, threshold = split(df)
@@ -189,7 +197,7 @@ def create_tree(df, depth, depth_limit, parent=None):
     if threshold != False:
         continuous = True
 
-    curr_node = Node(parent, feature, threshold=threshold, is_continuous=continuous, predict=majority_output)
+    curr_node = Node(parent, feature=feature, threshold=threshold, is_continuous=continuous, predict=majority_output)
 
     # Convert splits dictionary to key: node
     for x in splits.keys():
@@ -236,7 +244,7 @@ def main():
     train_set = df.iloc[:split_index, :]
     test_set = df.iloc[split_index:, :]
 
-    model = train(train_set, 100)
+    model = train(train_set, 3)
     print("Training Accuracy:", test(model, train_set))
     print("Test Accuracy: ", test(model, test_set))
 

@@ -1,5 +1,5 @@
 class Node:
-    def __init__(self, parent, feature, predict=0, children={}, threshold=None, is_continuous=False, is_leaf=False):
+    def __init__(self, parent, feature=None, predict=0, children={}, threshold=None, is_continuous=False, is_leaf=False):
 
         if is_leaf:
             self.is_leaf = True
