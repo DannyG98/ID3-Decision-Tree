@@ -1,5 +1,6 @@
 import pandas as pd
 import math
+import numpy as np
 from node import *
 
 discrete_features = ['Sex', 'Pclass', 'Embarked']
@@ -166,6 +167,7 @@ def check_rows_equal(df):
     return True
 
 
+# Recursively Creates the Decision Tree
 def create_tree(df, depth, depth_limit, parent=None):
     if depth > depth_limit:
         parent.is_leaf = True
@@ -198,19 +200,15 @@ def create_tree(df, depth, depth_limit, parent=None):
     return curr_node
 
 
-def train(train_path, depth_limit):
-    df = pd.read_csv(train_path)
-    df = pre_processing(df)
-
-    root = create_tree(df, 0, depth_limit)
+# Train a decision tree
+def train(data_frame, depth_limit):
+    root = create_tree(data_frame, 0, depth_limit)
 
     return root
 
 
-def test(model, test_path):
-    df = pd.read_csv(test_path)
-    df = pre_processing(df)
-
+# Test a decision tree
+def test(model, df):
     current_node = model
     errors = 0
 
@@ -230,8 +228,21 @@ def test(model, test_path):
     return 1 - errors/len(df)
 
 
-model = train('titanic.csv', 5)
-print("Accuracy: ", test(model, 'titanic.csv'))
+# Self explanatory
+def main():
+    df = pd.read_csv('titanic.csv')
+    df = pre_processing(df)
+    split_index = int(len(df) * 0.6)
+    train_set = df.iloc[:split_index, :]
+    test_set = df.iloc[split_index:, :]
+
+    model = train(train_set, 100)
+    print("Training Accuracy:", test(model, train_set))
+    print("Test Accuracy: ", test(model, test_set))
+
+
+main()
+
 
 
 
