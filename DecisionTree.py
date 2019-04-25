@@ -25,8 +25,9 @@ def pre_processing(df):
 
 
 # Calculates IG for discrete feature
-def calculate_ig(df, attribute):
-    entropy = calculate_entropy(df)
+def calculate_ig(df, attribute, entropy=None):
+    if entropy is None:
+        entropy = calculate_entropy(df)
 
     # DICT
     attribute_domain = discrete_dict[attribute]
@@ -41,14 +42,14 @@ def calculate_ig(df, attribute):
 
 
 # Finds the best threshold and the max IG for continuous attribute
-def calculate_ig_cont(df, attribute):
+def calculate_ig_cont(df, attribute, entropy=None):
     thresholds = find_thresholds(df, attribute)
 
     threshold = None
     max_ig = float("-inf")
 
     for x in thresholds:
-        ig = __calculate_ig_cont(df, attribute, x)
+        ig = __calculate_ig_cont(df, attribute, x, entropy)
 
         if ig > max_ig:
             threshold = x
@@ -58,8 +59,9 @@ def calculate_ig_cont(df, attribute):
 
 
 # Calculates IG for continuous feature based on a given threshold
-def __calculate_ig_cont(df, attribute, threshold):
-    entropy = calculate_entropy(df)
+def __calculate_ig_cont(df, attribute, threshold, entropy=None):
+    if entropy is None:
+        entropy = calculate_entropy(df)
 
     partition_less = df.loc[df[attribute] < threshold]
     partition_greater = df.loc[df[attribute] >= threshold]
@@ -121,13 +123,14 @@ def find_best_split(df):
     best_ig = -1
     best_attribute = None
     threshold = False
+    entropy = calculate_entropy(df)
 
     for column in list(df.columns):
         if column == 'Survived':
             continue
 
         if column in discrete_features:
-            ig = calculate_ig(df, column)
+            ig = calculate_ig(df, column, entropy)
 
             if ig > best_ig:
                 best_ig = ig
@@ -135,7 +138,7 @@ def find_best_split(df):
                 threshold = False
 
         else:
-            t, ig = calculate_ig_cont(df, column)
+            t, ig = calculate_ig_cont(df, column, entropy)
 
             if ig > best_ig:
                 best_ig = ig
