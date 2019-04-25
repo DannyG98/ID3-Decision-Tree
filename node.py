@@ -1,17 +1,17 @@
 class Node:
-    def __init__(self, parent, value, predict=0, children={}, is_continuous=False, is_leaf=False):
+    def __init__(self, parent, feature, predict=0, children={}, threshold=None, is_continuous=False, is_leaf=False):
 
         if is_leaf:
             self.is_leaf = True
-            self.value = value
-            self.predict_value = predict
         if not is_leaf:
             self.is_leaf = False
 
-        self.value = value
+        self.predict_value = predict
+        self.feature = feature
         self.parent = parent
         self.children = children
         self.is_continous = is_continuous
+        self.threshold = threshold
 
     def add_children(self, children_dict):
         self.children = children_dict
@@ -21,9 +21,9 @@ class Node:
             return self.predict_value
 
         if self.is_continous:
-            if evaluate_on < self.value:
-                return self.data_dict['<']
-            if evaluate_on >= self.value:
-                return self.data_dict['>=']
+            if evaluate_on < self.threshold:
+                return self.children['<']
+            if evaluate_on >= self.threshold:
+                return self.children['>=']
         else:
-            return self.data_dict[evaluate_on]
+            return self.children[evaluate_on]

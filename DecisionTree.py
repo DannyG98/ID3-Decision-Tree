@@ -1,13 +1,14 @@
 import pandas as pd
 import math
-import node.py as Node
+from node import *
 
 discrete_features = ['Sex', 'Pclass', 'Embarked']
 
 
 # Drops useless columns and fills in NaNs with mode for that column
 def pre_processing(df):
-    df = df.drop(['Name', 'PassengerId', 'Cabin'], axis=1)
+    # df = df.drop(['Name', 'PassengerId', 'Cabin', 'Ticket', 'Age', 'SibSp', 'Parch', 'Fare'], axis=1)
+    df = df.drop(['Name', 'PassengerId', 'Cabin', 'Ticket'], axis=1)
 
     for column in list(df.columns):
         if column != 'Survived':
@@ -26,7 +27,7 @@ def calculate_ig(df, attribute):
 
     for x in attribute_domain:
         partition = df.loc[df[attribute] == x]
-        conditional_entropy += partition/len(df) * calculate_entropy(partition)
+        conditional_entropy += len(partition)/len(df) * calculate_entropy(partition)
 
     return entropy - conditional_entropy
 
@@ -63,7 +64,7 @@ def __calculate_ig_cont(df, attribute, threshold):
 
 # Produces a list of thresholds for a continuous attribute
 def find_thresholds(df, attribute):
-    sorted_df = df[['Survived', attribute]].sort_values('Fare')
+    sorted_df = df[['Survived', attribute]].sort_values(attribute)
 
     threshold_list = []
     previous_value = sorted_df.iloc[0]['Survived']
@@ -80,15 +81,29 @@ def find_thresholds(df, attribute):
         else:
             prev_att = row[attribute]
 
-    return threshold_list
+    return set(threshold_list)
 
 
 # Calculates the entropy
 def calculate_entropy(df):
-    count_1 = len(df.loc[df['Survived'] == 1]) / len(df)
-    count_0 = len(df.loc[df['Survived'] == 0]) / len(df)
+    if len(df) != 0:
+        count_1 = len(df.loc[df['Survived'] == 1]) / len(df)
+        count_0 = len(df.loc[df['Survived'] == 0]) / len(df)
+    else:
+        count_1 = 0
+        count_0 = 0
 
-    entropy = -(count_1 * math.log(count_1, 2) + count_0 * math.log(count_0, 2))
+    if count_1 != 0:
+        x = count_1 * math.log(count_1, 2)
+    else:
+        x = 0
+
+    if count_0 != 0:
+        y = count_0 * math.log(count_0, 2)
+    else:
+        y = 0
+
+    entropy = -(x + y)
 
     return entropy
 
@@ -104,7 +119,7 @@ def find_best_split(df):
             continue
 
         if column in discrete_features:
-            ig = calculate_ig(column)
+            ig = calculate_ig(df, column)
 
             if ig > best_ig:
                 best_ig = ig
@@ -112,7 +127,7 @@ def find_best_split(df):
                 threshold = False
 
         else:
-            t, ig = calculate_ig_cont(column)
+            t, ig = calculate_ig_cont(df, column)
 
             if ig > best_ig:
                 best_ig = ig
@@ -134,9 +149,10 @@ def split(df):
 
     else:
         for x in list(df[feature].unique()):
-            splits[x] = df.loc[df[feature] == x]
+            splits[x] = df.loc[df[feature] == x].drop(feature, axis=1)
 
     return splits, feature, threshold
+
 
 # Checks for exit case 2
 def check_rows_equal(df):
@@ -144,25 +160,34 @@ def check_rows_equal(df):
         if x == 'Survived':
             continue
 
-        if df[x].nunique > 1:
+        if df[x].nunique() > 1:
             return False
 
     return True
 
 
 def create_tree(df, depth, depth_limit, parent=None):
-    if depth >= depth_limit:
-        majority_output = df['Survived'].mode()[0]
-        return Node(parent, predict_value=majority_output, is_leaf=True)
+    if depth > depth_limit:
+        parent.is_leaf = True
+        return
     if calculate_entropy(df) == 0:
-        return Node(parent, predict_value=df['Survived'].iloc[0], is_leaf=True)
+        parent.is_leaf = True
+        return
     if check_rows_equal(df):
-        majority_output = df['Survived'].mode()[0]
-        return Node(majority_output, parent, is_leaf=True)
+        parent.is_leaf = True
+        return
+
+    majority_output = df['Survived'].mode()[0]
 
     # Splits dictionary is currently key: df
     splits, feature, threshold = split(df)
-    curr_node = Node(parent, feature)
+
+    continuous = False
+
+    if threshold != False:
+        continuous = True
+
+    curr_node = Node(parent, feature, threshold=threshold, is_continuous=continuous, predict=majority_output)
 
     # Convert splits dictionary to key: node
     for x in splits.keys():
@@ -173,16 +198,40 @@ def create_tree(df, depth, depth_limit, parent=None):
     return curr_node
 
 
-def train(path, depth_limit):
-    df = pd.read_csv(path)
+def train(train_path, depth_limit):
+    df = pd.read_csv(train_path)
     df = pre_processing(df)
 
     root = create_tree(df, 0, depth_limit)
 
+    return root
 
 
+def test(model, test_path):
+    df = pd.read_csv(test_path)
+    df = pre_processing(df)
+
+    current_node = model
+    errors = 0
+
+    for index, row in df.iterrows():
+        current_node = model
+
+        while not current_node.is_leaf:
+            deciding_feature = current_node.feature
+            row_feature_val = row[deciding_feature]
+            current_node = current_node.get_result(row_feature_val)
+
+        prediction = current_node.predict_value
+
+        if prediction != row['Survived']:
+            errors += 1
+
+    return 1 - errors/len(df)
 
 
+model = train('titanic.csv', 5)
+print("Accuracy: ", test(model, 'titanic.csv'))
 
 
 
