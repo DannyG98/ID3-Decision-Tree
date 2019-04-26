@@ -13,9 +13,13 @@ class Node:
         self.is_continous = is_continuous
         self.threshold = threshold
 
+    # Adds the children dictionary
     def add_children(self, children_dict):
         self.children = children_dict
 
+    # This method is used for DecisionTree.py only
+    # Returns the result of a decision from a decision stump.
+    # Can return either a yes/no value or another decision stump
     def get_result(self, evaluate_on):
         if self.is_leaf:
             return self.predict_value
@@ -28,6 +32,9 @@ class Node:
         else:
             return self.children[evaluate_on]
 
+    # This method is used for DecisionTreeWide.py only
+    # Returns the result of a decision from a decision stump.
+    # Can return either a yes/no value or another decision stump
     def get_result_wide(self, evaluate_on):
         if self.is_leaf:
             return self.predict_value

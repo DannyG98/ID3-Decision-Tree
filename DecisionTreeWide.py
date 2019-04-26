@@ -10,6 +10,8 @@ df_mode = 0
 
 # Drops useless columns and fills in NaNs with mode for that column
 def pre_processing(df):
+    global df_mode
+
     # df = df.drop(['Name', 'PassengerId', 'Cabin', 'Ticket', 'Age', 'SibSp', 'Parch', 'Fare'], axis=1)
     df = df.drop(['Name', 'PassengerId', 'Cabin', 'Ticket'], axis=1)
     df_mode = df['Survived'].mode()[0]
@@ -179,17 +181,17 @@ def split(df):
 
     if threshold is not None:
 
-        splits[threshold[0]] = df.loc[df[feature] < threshold[0]]#.drop(feature, axis=1)
+        splits[threshold[0]] = df.loc[df[feature] < threshold[0]].drop(feature, axis=1)
         for x in range(1, len(threshold) - 1):
-            partition_holder = df.loc[(df[feature] < threshold[x]) & (df[feature] >= threshold[x-1])]#.drop(feature, axis=1)
+            partition_holder = df.loc[(df[feature] < threshold[x]) & (df[feature] >= threshold[x-1])].drop(feature, axis=1)
             splits[threshold[x]] = partition_holder
 
-        splits[-1] = df.loc[df[feature] >= threshold[-1]]#.drop(feature, axis=1)
+        splits[-1] = df.loc[df[feature] >= threshold[-1]].drop(feature, axis=1)
 
     else:
         # DICT
         for x in discrete_dict[feature]:
-            splits[x] = df.loc[df[feature] == x]#.drop(feature, axis=1)
+            splits[x] = df.loc[df[feature] == x].drop(feature, axis=1)
 
     return splits, feature, threshold
 
@@ -270,22 +272,23 @@ def test(model, df):
 # Self explanatory
 def main():
     parser = argparse.ArgumentParser(description='ID3 Decision Tree')
-    parser.add_argument("--dataset")
+    parser.add_argument("--dataset", default='titanic.csv')
+    parser.add_argument("--depth", default=3)
     args = parser.parse_args()
     file_path = args.dataset
-
-    if file_path is None:
-        file_path = 'titanic.csv'
+    tree_depth = args.depth
 
     df = pd.read_csv(file_path)
     df = pre_processing(df)
-    #df = df.sample(frac=1).reset_index(drop=True)
+
+    # Randomization
+    # df = df.sample(frac=1).reset_index(drop=True)
 
     split_index = int(len(df) * 0.6)
     train_set = df.iloc[:split_index, :]
     test_set = df.iloc[split_index:, :]
 
-    model = train(train_set, 9)
+    model = train(train_set, tree_depth)
     print("Training Accuracy:", test(model, train_set))
     print("Test Accuracy: ", test(model, test_set))
 

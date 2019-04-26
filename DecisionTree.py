@@ -10,6 +10,8 @@ df_mode = 0
 
 # Drops useless columns and fills in NaNs with mode for that column
 def pre_processing(df):
+    global df_mode
+
     # df = df.drop(['Name', 'PassengerId', 'Cabin', 'Ticket', 'Age', 'SibSp', 'Parch', 'Fare'], axis=1)
     df = df.drop(['Name', 'PassengerId', 'Cabin', 'Ticket'], axis=1)
     df_mode = df['Survived'].mode()[0]
@@ -155,13 +157,13 @@ def split(df):
     splits = {}
 
     if threshold is not None:
-        splits['<'] = df.loc[df[feature] < threshold]#.drop(feature, axis=1)
-        splits['>='] = df.loc[df[feature] >= threshold]#.drop(feature, axis=1)
+        splits['<'] = df.loc[df[feature] < threshold].drop(feature, axis=1)
+        splits['>='] = df.loc[df[feature] >= threshold].drop(feature, axis=1)
 
     else:
         # DICT
         for x in discrete_dict[feature]:
-            splits[x] = df.loc[df[feature] == x]#.drop(feature, axis=1)
+            splits[x] = df.loc[df[feature] == x].drop(feature, axis=1)
 
     return splits, feature, threshold
 
@@ -202,10 +204,11 @@ def create_tree(df, depth, depth_limit, parent=None):
 
     curr_node = Node(parent, feature=feature, threshold=threshold, is_continuous=continuous, predict=majority_output)
 
-    # Convert splits dictionary to key: node
+    # Convert splits dictionary to key: node and iterates recursively for each child
     for x in splits.keys():
         splits[x] = create_tree(splits[x], depth+1, depth_limit, parent=curr_node)
 
+    # Recursion has ended, we now connect the child to the node
     curr_node.add_children(splits)
 
     return curr_node
@@ -226,6 +229,7 @@ def test(model, df):
     for index, row in df.iterrows():
         current_node = model
 
+        # Iterate until leaf node is returned
         while not current_node.is_leaf:
             deciding_feature = current_node.feature
             row_feature_val = row[deciding_feature]
@@ -241,23 +245,28 @@ def test(model, df):
 
 # Self explanatory
 def main():
+    # Grab commandline arguments
     parser = argparse.ArgumentParser(description='ID3 Decision Tree')
-    parser.add_argument("--dataset")
+    parser.add_argument("--dataset", default='titanic.csv')
+    parser.add_argument("--depth", default=3)
     args = parser.parse_args()
     file_path = args.dataset
+    tree_depth = int(args.depth)
 
-    if file_path is None:
-        file_path = 'titanic.csv'
-
+    # Read data to Pandas dataframe, preprocess, and randomize before splitting
     df = pd.read_csv(file_path)
     df = pre_processing(df)
+
+    # Randomization
     # df = df.sample(frac=1).reset_index(drop=True)
 
+    # Split data 60-40 train, test
     split_index = int(len(df) * 0.6)
     train_set = df.iloc[:split_index, :]
     test_set = df.iloc[split_index:, :]
 
-    model = train(train_set, 3)
+    # Generate the model with optimal depth at 3 and print out accuracies
+    model = train(train_set, tree_depth)
     print("Training Accuracy:", test(model, train_set))
     print("Test Accuracy: ", test(model, test_set))
 
