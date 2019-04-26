@@ -1,6 +1,6 @@
 import pandas as pd
 import math
-import numpy as np
+import argparse
 from node import *
 
 discrete_features = ['Sex', 'Pclass', 'Embarked']
@@ -122,7 +122,7 @@ def calculate_entropy(df):
 def find_best_split(df):
     best_ig = -1
     best_attribute = None
-    threshold = False
+    threshold = None
     entropy = calculate_entropy(df)
 
     for column in list(df.columns):
@@ -135,7 +135,7 @@ def find_best_split(df):
             if ig > best_ig:
                 best_ig = ig
                 best_attribute = column
-                threshold = False
+                threshold = None
 
         else:
             t, ig = calculate_ig_cont(df, column, entropy)
@@ -154,14 +154,14 @@ def split(df):
 
     splits = {}
 
-    if threshold != False:
-        splits['<'] = df.loc[df[feature] < threshold]
-        splits['>='] = df.loc[df[feature] >= threshold]
+    if threshold is not None:
+        splits['<'] = df.loc[df[feature] < threshold]#.drop(feature, axis=1)
+        splits['>='] = df.loc[df[feature] >= threshold]#.drop(feature, axis=1)
 
     else:
         # DICT
         for x in discrete_dict[feature]:
-            splits[x] = df.loc[df[feature] == x].drop(feature, axis=1)
+            splits[x] = df.loc[df[feature] == x]#.drop(feature, axis=1)
 
     return splits, feature, threshold
 
@@ -197,7 +197,7 @@ def create_tree(df, depth, depth_limit, parent=None):
 
     continuous = False
 
-    if threshold != False:
+    if threshold is not None:
         continuous = True
 
     curr_node = Node(parent, feature=feature, threshold=threshold, is_continuous=continuous, predict=majority_output)
@@ -241,8 +241,18 @@ def test(model, df):
 
 # Self explanatory
 def main():
-    df = pd.read_csv('titanic.csv')
+    parser = argparse.ArgumentParser(description='ID3 Decision Tree')
+    parser.add_argument("--dataset")
+    args = parser.parse_args()
+    file_path = args.dataset
+
+    if file_path is None:
+        file_path = 'titanic.csv'
+
+    df = pd.read_csv(file_path)
     df = pre_processing(df)
+    # df = df.sample(frac=1).reset_index(drop=True)
+
     split_index = int(len(df) * 0.6)
     train_set = df.iloc[:split_index, :]
     test_set = df.iloc[split_index:, :]
@@ -252,8 +262,8 @@ def main():
     print("Test Accuracy: ", test(model, test_set))
 
 
-main()
-
+if __name__ == '__main__':
+    main()
 
 
 
