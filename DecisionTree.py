@@ -93,14 +93,32 @@ def find_thresholds(df, attribute):
         else:
             prev_att = row[attribute]
 
+    # Failed Optimization Attempt
+    # for i in range(len(df)):
+    #     val = sorted_df.iloc[i]['Survived']
+    #     curr_att = sorted_df.iloc[i][attribute]
+    #
+    #     if val != previous_value:
+    #         threshold_list.append(prev_att + (curr_att - prev_att)/2)
+    #         previous_value = val
+    #
+    #         prev_att = curr_att
+    #     else:
+    #         prev_att = curr_att
+
     return set(threshold_list)
 
 
 # Calculates the entropy
 def calculate_entropy(df):
-    if len(df) != 0:
-        count_1 = len(df.loc[df['Survived'] == 1]) / len(df)
-        count_0 = len(df.loc[df['Survived'] == 0]) / len(df)
+    length_of_df = len(df)
+    if length_of_df != 0:
+        # count_1 = len(df.loc[df['Survived'] == 1]) / len(df)
+        # count_0 = len(df.loc[df['Survived'] == 0]) / len(df)
+        num_1 = len(df[df['Survived'] == 1])
+        num_0 = length_of_df - num_1
+        count_1 = num_1 / length_of_df
+        count_0 = num_0 / length_of_df
     else:
         count_1 = 0
         count_0 = 0
@@ -157,8 +175,8 @@ def split(df):
     splits = {}
 
     if threshold is not None:
-        splits['<'] = df.loc[df[feature] < threshold].drop(feature, axis=1)
-        splits['>='] = df.loc[df[feature] >= threshold].drop(feature, axis=1)
+        splits['<'] = df.loc[df[feature] < threshold]#.drop(feature, axis=1)
+        splits['>='] = df.loc[df[feature] >= threshold]#.drop(feature, axis=1)
 
     else:
         # DICT
