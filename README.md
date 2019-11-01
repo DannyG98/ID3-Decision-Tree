@@ -8,7 +8,7 @@ Pandas: Used for data-manipulation
 
 ### How to Run:
 
-Note: These programs may take awhile to run but will definitely finish\
+Note: These programs may take awhile to run but will definitely finish
 
 The main program for the decision tree is DecisionTree.py\
 To run this use the following command line:\
