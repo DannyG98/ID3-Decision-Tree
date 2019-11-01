@@ -1,12 +1,12 @@
-#ID3 Decision Tree
+# ID3 Decision Tree
 Decision Tree implementation based on the ID3 algorithm
 
-Libraries Used:
+### Libraries Used:
 matplotlib : Used the matplotlib.pyplot library to create graphs
 Pandas: Used for data-manipulation
 
 
-How to Run:
+### How to Run:
 
 Note: These programs may take awhile to run but will definitely finish
 
