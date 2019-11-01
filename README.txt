@@ -1,5 +1,5 @@
-Danny Guo
-SBU ID: 111056464
+#ID3 Decision Tree
+Decision Tree implementation based on the ID3 algorithm
 
 Libraries Used:
 matplotlib : Used the matplotlib.pyplot library to create graphs
